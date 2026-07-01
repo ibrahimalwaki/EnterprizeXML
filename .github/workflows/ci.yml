@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: orders
+          POSTGRES_USER: orders
+          POSTGRES_PASSWORD: orders
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Install Chrome for Selenium tests
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Run unit + integration + REST Assured tests
+        run: mvn -B test -Dspring.profiles.active=test
+        env:
+          SPRING_DATASOURCE_URL: jdbc:h2:mem:orders;MODE=PostgreSQL
+
+      - name: Run Selenium tests against real server
+        run: |
+          mvn -B spring-boot:start \
+            -Dspring-boot.run.jvmArguments="-Dspring.datasource.url=jdbc:postgresql://localhost:5433/orders -Dspring.datasource.username=orders -Dspring.datasource.password=orders"
+          sleep 5
+          mvn -B test -Dtest=SeleniumWebUiTest \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5433/orders \
+            -Dspring.datasource.username=orders \
+            -Dspring.datasource.password=orders
+          mvn -B spring-boot:stop
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/

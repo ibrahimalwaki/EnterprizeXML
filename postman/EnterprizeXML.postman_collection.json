@@ -1,0 +1,332 @@
+{
+  "info": {
+    "name": "Enterprise XML Order Processing API",
+    "description": "Complete Postman collection for manual API testing of the Enterprise XML Order Processing service. Covers valid, invalid, boundary, and negative test cases.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "orderId",  "value": "PO-POSTMAN-001",       "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1 - Happy Path",
+      "item": [
+        {
+          "name": "TC-PM-001 Submit valid order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Content-Type is XML', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('xml'));",
+                  "pm.test('Status is ACCEPTED', () => pm.expect(pm.response.text()).to.include('<status>ACCEPTED</status>'));",
+                  "pm.test('Total amount correct', () => pm.expect(pm.response.text()).to.include('<totalAmount>29.97</totalAmount>'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder>\n    <orderId>{{orderId}}</orderId>\n    <customerId>CUST-1</customerId>\n    <orderDate>2026-06-30</orderDate>\n    <items>\n        <item>\n            <sku>SKU-001</sku>\n            <description>Widget A</description>\n            <quantity>3</quantity>\n            <unitPrice>9.99</unitPrice>\n        </item>\n    </items>\n</purchaseOrder>"
+            }
+          }
+        },
+        {
+          "name": "TC-PM-002 Get submitted order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Order ID matches', () => pm.expect(pm.response.text()).to.include(pm.collectionVariables.get('orderId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/{{orderId}}"
+          }
+        },
+        {
+          "name": "TC-PM-003 Get HTML invoice",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type is HTML', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('text/html'));",
+                  "pm.test('Invoice contains order ID', () => pm.expect(pm.response.text()).to.include(pm.collectionVariables.get('orderId')));",
+                  "pm.test('Invoice contains total', () => pm.expect(pm.response.text()).to.include('29.97'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/{{orderId}}/invoice"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Validation Errors",
+      "item": [
+        {
+          "name": "TC-PM-004 Missing customerId → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Contains validationErrors', () => pm.expect(pm.response.text()).to.include('validationErrors'));",
+                  "pm.test('Error mentions customerId', () => pm.expect(pm.response.text()).to.include('customerId'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder>\n    <orderId>PM-MISSING-CUST</orderId>\n    <orderDate>2026-06-30</orderDate>\n    <items><item><sku>SKU-1</sku><description>X</description><quantity>1</quantity><unitPrice>1.00</unitPrice></item></items>\n</purchaseOrder>"
+            }
+          }
+        },
+        {
+          "name": "TC-PM-005 Invalid date format → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder>\n    <orderId>PM-BAD-DATE</orderId>\n    <customerId>CUST-1</customerId>\n    <orderDate>30/06/2026</orderDate>\n    <items><item><sku>SKU-1</sku><description>X</description><quantity>1</quantity><unitPrice>1.00</unitPrice></item></items>\n</purchaseOrder>"
+            }
+          }
+        },
+        {
+          "name": "TC-PM-006 Text in quantity field → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder>\n    <orderId>PM-BAD-QTY</orderId>\n    <customerId>CUST-1</customerId>\n    <orderDate>2026-06-30</orderDate>\n    <items><item><sku>SKU-1</sku><description>X</description><quantity>TWO</quantity><unitPrice>1.00</unitPrice></item></items>\n</purchaseOrder>"
+            }
+          }
+        },
+        {
+          "name": "TC-PM-007 Negative unit price → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder>\n    <orderId>PM-NEG-PRICE</orderId>\n    <customerId>CUST-1</customerId>\n    <orderDate>2026-06-30</orderDate>\n    <items><item><sku>SKU-1</sku><description>X</description><quantity>1</quantity><unitPrice>-5.00</unitPrice></item></items>\n</purchaseOrder>"
+            }
+          }
+        },
+        {
+          "name": "TC-PM-008 Malformed XML → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error mentions Malformed XML', () => pm.expect(pm.response.text()).to.include('Malformed XML'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": {
+              "mode": "raw",
+              "raw": "<purchaseOrder><orderId>PM-MALFORMED"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Negative Tests",
+      "item": [
+        {
+          "name": "TC-PM-009 Duplicate order ID → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409 Conflict', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder>\n    <orderId>{{orderId}}</orderId>\n    <customerId>CUST-1</customerId>\n    <orderDate>2026-06-30</orderDate>\n    <items><item><sku>SKU-1</sku><description>X</description><quantity>1</quantity><unitPrice>1.00</unitPrice></item></items>\n</purchaseOrder>"
+            }
+          }
+        },
+        {
+          "name": "TC-PM-010 GET unknown order → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/DOES-NOT-EXIST"
+          }
+        },
+        {
+          "name": "TC-PM-011 GET invoice for unknown order → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/orders/GHOST-ORDER/invoice"
+          }
+        },
+        {
+          "name": "TC-PM-012 XXE injection attempt → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400 (XXE blocked)', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": {
+              "mode": "raw",
+              "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]>\n<purchaseOrder>\n    <orderId>&xxe;</orderId>\n    <customerId>CUST-1</customerId>\n    <orderDate>2026-06-30</orderDate>\n    <items><item><sku>S</sku><description>X</description><quantity>1</quantity><unitPrice>1.00</unitPrice></item></items>\n</purchaseOrder>"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Boundary Tests",
+      "item": [
+        {
+          "name": "TC-PM-013 Quantity = 1 (min boundary) → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": { "mode": "raw", "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder><orderId>PM-QTY-MIN</orderId><customerId>CUST-1</customerId><orderDate>2026-06-30</orderDate><items><item><sku>SKU-1</sku><description>Min</description><quantity>1</quantity><unitPrice>1.00</unitPrice></item></items></purchaseOrder>" }
+          }
+        },
+        {
+          "name": "TC-PM-014 Quantity = 10000 (max boundary) → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": { "mode": "raw", "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder><orderId>PM-QTY-MAX</orderId><customerId>CUST-1</customerId><orderDate>2026-06-30</orderDate><items><item><sku>SKU-1</sku><description>Max</description><quantity>10000</quantity><unitPrice>0.01</unitPrice></item></items></purchaseOrder>" }
+          }
+        },
+        {
+          "name": "TC-PM-015 Quantity = 10001 (over max) → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/orders",
+            "header": [{ "key": "Content-Type", "value": "application/xml" }],
+            "body": { "mode": "raw", "raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<purchaseOrder><orderId>PM-QTY-OVER</orderId><customerId>CUST-1</customerId><orderDate>2026-06-30</orderDate><items><item><sku>SKU-1</sku><description>Over</description><quantity>10001</quantity><unitPrice>1.00</unitPrice></item></items></purchaseOrder>" }
+          }
+        }
+      ]
+    }
+  ]
+}

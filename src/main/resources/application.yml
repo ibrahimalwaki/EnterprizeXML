@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: orders
+  datasource:
+    url: jdbc:postgresql://localhost:5433/orders
+    username: orders
+    password: orders
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+app:
+  xsd:
+    purchase-order: classpath:xsd/purchase-order.xsd
+  xslt:
+    invoice: classpath:xslt/invoice.xslt

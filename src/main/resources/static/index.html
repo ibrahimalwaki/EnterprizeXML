@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise XML Order System</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f2f5;
+            color: #222;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #1a237e;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        header h1 { font-size: 1.3rem; font-weight: 600; }
+        header span { font-size: 0.85rem; opacity: 0.7; }
+
+        .tabs {
+            display: flex;
+            background: #283593;
+            padding: 0 2rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            color: rgba(255,255,255,0.7);
+            border-bottom: 3px solid transparent;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .tab:hover { color: white; }
+        .tab.active { color: white; border-bottom-color: #82b1ff; font-weight: 600; }
+
+        .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a237e;
+            margin-bottom: 1.2rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid #e8eaf6;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+        .field { display: flex; flex-direction: column; gap: 0.3rem; }
+
+        label { font-size: 0.8rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
+
+        input, select {
+            padding: 0.55rem 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            transition: border 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3f51b5;
+            box-shadow: 0 0 0 3px rgba(63,81,181,0.1);
+        }
+
+        .items-section h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 0.8rem;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 80px 100px 36px;
+            gap: 0.6rem;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .item-row input { margin: 0; }
+
+        .item-header {
+            display: grid;
+            grid-template-columns: 1fr 2fr 80px 100px 36px;
+            gap: 0.6rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .item-header span {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .btn {
+            padding: 0.55rem 1.2rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background: #3f51b5; color: white; }
+        .btn-primary:hover { background: #303f9f; }
+        .btn-primary:disabled { background: #9fa8da; cursor: not-allowed; }
+
+        .btn-secondary { background: #e8eaf6; color: #3f51b5; }
+        .btn-secondary:hover { background: #c5cae9; }
+
+        .btn-danger { background: #ffebee; color: #c62828; border: none; border-radius: 4px; padding: 0 0.5rem; height: 34px; font-size: 1rem; cursor: pointer; }
+        .btn-danger:hover { background: #ffcdd2; }
+
+        .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.82rem; }
+
+        .btn-add { background: none; border: 1px dashed #9fa8da; color: #5c6bc0; border-radius: 5px; padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.85rem; margin-top: 0.5rem; }
+        .btn-add:hover { background: #e8eaf6; }
+
+        .actions { display: flex; gap: 0.75rem; margin-top: 1.2rem; align-items: center; }
+
+        .response-box {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .response-box.show { display: block; }
+
+        .response-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .badge-success { background: #e8f5e9; color: #2e7d32; }
+        .badge-error { background: #ffebee; color: #c62828; }
+        .badge-info { background: #e3f2fd; color: #1565c0; }
+
+        .response-label { font-size: 0.82rem; color: #666; }
+
+        pre {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            padding: 1rem;
+            font-size: 0.82rem;
+            overflow-x: auto;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .xml-tag { color: #1565c0; }
+        .xml-attr { color: #6a1b9a; }
+        .xml-value { color: #2e7d32; }
+        .xml-bracket { color: #888; }
+
+        .lookup-row { display: flex; gap: 0.75rem; align-items: flex-end; }
+        .lookup-row .field { flex: 1; }
+
+        .order-result {
+            margin-top: 1rem;
+        }
+
+        .invoice-btn {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .invoice-btn:hover { background: #c8e6c9; }
+
+        .spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.4rem;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .total-preview {
+            margin-top: 0.75rem;
+            text-align: right;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .total-preview strong { color: #1a237e; font-size: 1.05rem; }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>Enterprise XML Order System</h1>
+        <span>Purchase Order Processing API</span>
+    </div>
+</header>
+
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('submit')">Submit Order</div>
+    <div class="tab" onclick="switchTab('lookup')">Look Up Order</div>
+</div>
+
+<div class="container">
+
+    <!-- SUBMIT PANEL -->
+    <div id="panel-submit" class="panel active">
+        <div class="card">
+            <h2>New Purchase Order</h2>
+
+            <div class="form-row">
+                <div class="field">
+                    <label>Order ID</label>
+                    <input type="text" id="orderId" placeholder="e.g. PO-2001" />
+                </div>
+                <div class="field">
+                    <label>Customer ID</label>
+                    <input type="text" id="customerId" placeholder="e.g. CUST-1" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="field">
+                    <label>Order Date</label>
+                    <input type="date" id="orderDate" />
+                </div>
+            </div>
+
+            <div class="items-section" style="margin-top:1.2rem">
+                <h3>Line Items</h3>
+                <div class="item-header">
+                    <span>SKU</span>
+                    <span>Description</span>
+                    <span>Qty</span>
+                    <span>Unit Price</span>
+                    <span></span>
+                </div>
+                <div id="items-container"></div>
+                <button class="btn-add" onclick="addItem()">+ Add Item</button>
+                <div class="total-preview" id="total-preview"></div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" id="submit-btn" onclick="submitOrder()">Submit Order</button>
+                <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+            </div>
+        </div>
+
+        <div class="response-box" id="submit-response">
+            <div class="card">
+                <div class="response-header">
+                    <span class="badge" id="submit-badge"></span>
+                    <span class="response-label" id="submit-response-label"></span>
+                </div>
+                <div id="submit-invoice-link" style="margin-bottom:0.75rem; display:none">
+                    <a class="invoice-btn" id="invoice-link-btn" target="_blank">View HTML Invoice</a>
+                </div>
+                <pre id="submit-response-body"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOOKUP PANEL -->
+    <div id="panel-lookup" class="panel">
+        <div class="card">
+            <h2>Look Up an Order</h2>
+            <div class="lookup-row">
+                <div class="field">
+                    <label>Order ID</label>
+                    <input type="text" id="lookup-id" placeholder="e.g. PO-2001" onkeydown="if(event.key==='Enter') lookupOrder()" />
+                </div>
+                <button class="btn btn-primary" onclick="lookupOrder()">Search</button>
+            </div>
+
+            <div class="order-result" id="lookup-response" style="display:none">
+                <div style="height:1px; background:#e8eaf6; margin: 1rem 0"></div>
+                <div class="response-header">
+                    <span class="badge" id="lookup-badge"></span>
+                    <span class="response-label" id="lookup-response-label"></span>
+                </div>
+                <div id="lookup-invoice-link" style="margin-bottom:0.75rem; display:none">
+                    <a class="invoice-btn" id="lookup-invoice-btn" target="_blank">View HTML Invoice</a>
+                </div>
+                <pre id="lookup-response-body"></pre>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Set today as default date
+    document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+
+    // Start with one item row
+    addItem();
+
+    function switchTab(name) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    let itemCount = 0;
+
+    function addItem() {
+        itemCount++;
+        const id = 'item-' + itemCount;
+        const div = document.createElement('div');
+        div.className = 'item-row';
+        div.id = id;
+        div.innerHTML = `
+            <input type="text" placeholder="SKU-1" onchange="updateTotal()" />
+            <input type="text" placeholder="Description" />
+            <input type="number" placeholder="1" min="1" max="10000" value="1" onchange="updateTotal()" />
+            <input type="number" placeholder="0.00" min="0" step="0.01" onchange="updateTotal()" />
+            <button class="btn-danger" onclick="removeItem('${id}')">✕</button>
+        `;
+        document.getElementById('items-container').appendChild(div);
+        updateTotal();
+    }
+
+    function removeItem(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+        updateTotal();
+    }
+
+    function updateTotal() {
+        let total = 0;
+        document.querySelectorAll('#items-container .item-row').forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            const qty = parseFloat(inputs[2].value) || 0;
+            const price = parseFloat(inputs[3].value) || 0;
+            total += qty * price;
+        });
+        const preview = document.getElementById('total-preview');
+        preview.innerHTML = total > 0 ? `Estimated Total: <strong>$${total.toFixed(2)}</strong>` : '';
+    }
+
+    function buildXml() {
+        const orderId = document.getElementById('orderId').value.trim();
+        const customerId = document.getElementById('customerId').value.trim();
+        const orderDate = document.getElementById('orderDate').value;
+
+        if (!orderId || !customerId || !orderDate) {
+            return { error: 'Order ID, Customer ID and Order Date are required.' };
+        }
+
+        const itemRows = document.querySelectorAll('#items-container .item-row');
+        if (itemRows.length === 0) {
+            return { error: 'At least one line item is required.' };
+        }
+
+        let itemsXml = '';
+        let valid = true;
+        itemRows.forEach(row => {
+            const inputs = row.querySelectorAll('input');
+            const sku = inputs[0].value.trim();
+            const desc = inputs[1].value.trim();
+            const qty = inputs[2].value.trim();
+            const price = inputs[3].value.trim();
+            if (!sku || !desc || !qty || !price) { valid = false; return; }
+            itemsXml += `
+            <item>
+                <sku>${escXml(sku)}</sku>
+                <description>${escXml(desc)}</description>
+                <quantity>${qty}</quantity>
+                <unitPrice>${parseFloat(price).toFixed(2)}</unitPrice>
+            </item>`;
+        });
+
+        if (!valid) return { error: 'All item fields (SKU, Description, Quantity, Unit Price) must be filled in.' };
+
+        return { xml: `<?xml version="1.0" encoding="UTF-8"?>
+<purchaseOrder>
+    <orderId>${escXml(orderId)}</orderId>
+    <customerId>${escXml(customerId)}</customerId>
+    <orderDate>${orderDate}</orderDate>
+    <items>${itemsXml}
+    </items>
+</purchaseOrder>` };
+    }
+
+    function escXml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function submitOrder() {
+        const built = buildXml();
+        if (built.error) {
+            showResponse('submit', 0, built.error, built.error);
+            return;
+        }
+
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Submitting...';
+
+        try {
+            const res = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/xml' },
+                body: built.xml
+            });
+            const text = await res.text();
+            const orderId = document.getElementById('orderId').value.trim();
+            showResponse('submit', res.status, text, res.status === 201 ? orderId : null);
+        } catch (e) {
+            showResponse('submit', 0, 'Network error: ' + e.message, null);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Submit Order';
+        }
+    }
+
+    async function lookupOrder() {
+        const id = document.getElementById('lookup-id').value.trim();
+        if (!id) return;
+
+        try {
+            const res = await fetch('/api/orders/' + encodeURIComponent(id));
+            const text = await res.text();
+            showLookupResponse(res.status, text, res.status === 200 ? id : null);
+        } catch (e) {
+            showLookupResponse(0, 'Network error: ' + e.message, null);
+        }
+    }
+
+    function showResponse(target, status, rawText, orderId) {
+        const box = document.getElementById('submit-response');
+        const badge = document.getElementById('submit-badge');
+        const label = document.getElementById('submit-response-label');
+        const body = document.getElementById('submit-response-body');
+        const invoiceDiv = document.getElementById('submit-invoice-link');
+        const invoiceBtn = document.getElementById('invoice-link-btn');
+
+        box.classList.add('show');
+
+        if (status === 201) {
+            badge.className = 'badge badge-success';
+            badge.textContent = '201 Created';
+            label.textContent = 'Order accepted and saved to database.';
+            invoiceDiv.style.display = 'block';
+            invoiceBtn.href = '/api/orders/' + encodeURIComponent(orderId) + '/invoice';
+        } else if (status >= 400) {
+            badge.className = 'badge badge-error';
+            badge.textContent = status + ' Error';
+            label.textContent = status === 409 ? 'Duplicate order ID — already exists.' : 'Order was rejected.';
+            invoiceDiv.style.display = 'none';
+        } else {
+            badge.className = 'badge badge-error';
+            badge.textContent = 'Error';
+            label.textContent = rawText;
+            invoiceDiv.style.display = 'none';
+        }
+
+        body.innerHTML = highlightXml(rawText);
+    }
+
+    function showLookupResponse(status, rawText, orderId) {
+        const div = document.getElementById('lookup-response');
+        const badge = document.getElementById('lookup-badge');
+        const label = document.getElementById('lookup-response-label');
+        const body = document.getElementById('lookup-response-body');
+        const invoiceDiv = document.getElementById('lookup-invoice-link');
+        const invoiceBtn = document.getElementById('lookup-invoice-btn');
+
+        div.style.display = 'block';
+
+        if (status === 200) {
+            badge.className = 'badge badge-success';
+            badge.textContent = '200 OK';
+            label.textContent = 'Order found.';
+            invoiceDiv.style.display = 'block';
+            invoiceBtn.href = '/api/orders/' + encodeURIComponent(orderId) + '/invoice';
+        } else if (status === 404) {
+            badge.className = 'badge badge-error';
+            badge.textContent = '404 Not Found';
+            label.textContent = 'No order with that ID.';
+            invoiceDiv.style.display = 'none';
+        } else {
+            badge.className = 'badge badge-error';
+            badge.textContent = status || 'Error';
+            label.textContent = 'Something went wrong.';
+            invoiceDiv.style.display = 'none';
+        }
+
+        body.innerHTML = highlightXml(rawText);
+    }
+
+    function highlightXml(xml) {
+        if (!xml || !xml.trim().startsWith('<')) return escHtml(xml);
+        return escHtml(xml)
+            .replace(/(&lt;\/?)([\w]+)/g, '<span class="xml-bracket">$1</span><span class="xml-tag">$2</span>')
+            .replace(/(\w+)(=)(&quot;[^&]*&quot;)/g, '<span class="xml-attr">$1</span>$2<span class="xml-value">$3</span>')
+            .replace(/&gt;/g, '<span class="xml-bracket">&gt;</span>');
+    }
+
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function clearForm() {
+        document.getElementById('orderId').value = '';
+        document.getElementById('customerId').value = '';
+        document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('items-container').innerHTML = '';
+        document.getElementById('total-preview').innerHTML = '';
+        document.getElementById('submit-response').classList.remove('show');
+        itemCount = 0;
+        addItem();
+    }
+</script>
+</body>
+</html>

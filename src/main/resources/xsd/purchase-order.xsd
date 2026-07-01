@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified">
+
+    <xs:element name="purchaseOrder" type="PurchaseOrderType"/>
+
+    <xs:complexType name="PurchaseOrderType">
+        <xs:sequence>
+            <xs:element name="orderId" type="OrderIdType"/>
+            <xs:element name="customerId" type="CustomerIdType"/>
+            <xs:element name="orderDate" type="xs:date"/>
+            <xs:element name="items" type="ItemsType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="OrderIdType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z0-9\-]{1,40}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CustomerIdType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z0-9\-]{1,40}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ItemsType">
+        <xs:sequence>
+            <xs:element name="item" type="ItemType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ItemType">
+        <xs:sequence>
+            <xs:element name="sku" type="SkuType"/>
+            <xs:element name="description" type="DescriptionType"/>
+            <xs:element name="quantity" type="QuantityType"/>
+            <xs:element name="unitPrice" type="PriceType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="SkuType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[A-Za-z0-9\-]{1,40}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DescriptionType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+            <xs:maxLength value="200"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="QuantityType">
+        <xs:restriction base="xs:int">
+            <xs:minInclusive value="1"/>
+            <xs:maxInclusive value="10000"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PriceType">
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.00"/>
+            <xs:fractionDigits value="2"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>
